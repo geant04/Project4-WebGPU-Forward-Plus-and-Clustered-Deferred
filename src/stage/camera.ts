@@ -20,7 +20,7 @@ class CameraUniforms {
         this.floatView.set(mat.subarray(0, 16), 32);
     }
 
-    set screenResolution(dims: Float32Array) {
+    set screenDimensions(dims: Float32Array) {
         this.floatView.set(dims.subarray(0, 2), 48);
     }
 }
@@ -154,7 +154,7 @@ export class Camera {
 
         this.uniforms.invProjMat = mat4.inverse(this.projMat);
 
-        this.uniforms.screenResolution = new Float32Array([canvas.width, canvas.height]);
+        this.uniforms.screenDimensions = new Float32Array([canvas.width, canvas.height]);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

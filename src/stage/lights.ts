@@ -29,13 +29,12 @@ export class Lights {
     moveLightsComputePipeline: GPUComputePipeline;
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
-    maxLightsPerCluster = 20;
+    maxLightsPerCluster = shaders.constants.maxLightsPerCluster;
 
     // let our slice length be 2, arbitrarily ig
+    slices = shaders.constants.numSlices;
+
     maxDepth = 20;
-    slices = 10;
-    
-    maxDepthUniformBuffer: GPUBuffer;
 
     // this needs to change ngl
     screenWidth = canvas.width;
@@ -51,7 +50,7 @@ export class Lights {
     numClustersZ = this.slices;
 
     maxNumClusters = this.numClustersX * this.numClustersY * this.numClustersZ;
-    floatsPerCluster = 4 + 4 + 3 + shaders.constants.maxLightsPerCluster;
+    floatsPerCluster = 1 + shaders.constants.maxLightsPerCluster;
 
     clustersArray = new Float32Array(this.maxNumClusters * this.floatsPerCluster);
     clusterSetStorageBuffer: GPUBuffer;
@@ -93,12 +92,6 @@ export class Lights {
 
         this.timeUniformBuffer = device.createBuffer({
             label: "time uniform",
-            size: 4,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
-
-        this.maxDepthUniformBuffer = device.createBuffer({
-            label: "max depth uniform",
             size: 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
@@ -155,11 +148,6 @@ export class Lights {
             0, 
             new Uint32Array([this.numClustersX, this.numClustersY, this.numClustersZ, this.maxLightsPerCluster]));
 
-        device.queue.writeBuffer(
-            this.maxDepthUniformBuffer, 
-            0, 
-            new Uint32Array([this.maxDepth]));
-
         this.getClusterBoundsComputeBindGroupLayout = device.createBindGroupLayout({
             label: "get cluster bounds compute bind group layout",
             entries: [
@@ -175,11 +163,6 @@ export class Lights {
                 },
                 {
                     binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "uniform" }
-                },
-                {
-                    binding: 3,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" }
                 }
@@ -200,10 +183,6 @@ export class Lights {
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.maxDepthUniformBuffer }
-                },
-                {
-                    binding: 3,
                     resource: { buffer: this.camera.uniformsBuffer }
                 }
             ]
@@ -267,24 +246,11 @@ export class Lights {
 
         computePass.dispatchWorkgroups(this.numClustersX, this.numClustersY, this.numClustersZ);
 
-        computePass.setPipeline(this.clusterLightsComputePipeline);
-        computePass.setBindGroup(0, this.getClusterBoundsComputeBindGroup); // switched my bind group to 1... don't know what this does
-
-        const workgroups = Math.ceil((this.numClustersX * this.numClustersY * this.numClustersZ) / shaders.constants.moveLightsWorkgroupSize);
-
-        computePass.dispatchWorkgroups(workgroups);
         computePass.end();
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
-        if (this.debugStopLights)
-        {
-            return;
-        }
-
-        this.debugStopLights = true;
-
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance

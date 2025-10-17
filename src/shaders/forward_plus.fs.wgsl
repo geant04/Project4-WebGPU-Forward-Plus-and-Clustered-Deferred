@@ -63,11 +63,11 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     }
 
     var finalColor = diffuseColor.rgb;
-    finalColor *= (totalLightContrib + vec3f(0.3, 0.3, 0.3));
+    finalColor *= (totalLightContrib);
 
     let notNDC = viewPos.x;
 
-    //return vec4(finalColor, 1);
+    return vec4(finalColor, 1);
     
     let hash = fract(sin(f32(clusterID) * 43758.5453) * 43758.5453);
     var randColor = vec3f(
@@ -77,5 +77,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     var numLightsMapOrSomething: f32 = f32(numLights) / ${maxLightsPerCluster};
 
-    return vec4(finalColor * (numLightsMapOrSomething + 0.1f), 1);
+    return vec4f(numLightsMapOrSomething, numLightsMapOrSomething, numLightsMapOrSomething, 1f);
+
+    // return vec4(finalColor * (numLightsMapOrSomething + 0.1f), 1);
 }

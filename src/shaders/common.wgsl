@@ -12,10 +12,6 @@ struct LightSet {
 
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
 struct Cluster {
-    minAABB: vec3f,
-    maxAABB: vec3f,
-    minZ: f32,
-    maxZ: f32,
     numLights: u32,
     lightIndices: array<u32, ${maxLightsPerCluster}>,
 }
