@@ -1,29 +1,9 @@
-// TODO-2: implement the Forward+ fragment shader
-
-// See naive.fs.wgsl for basic fragment shader setup; this shader should use light clusters instead of looping over all lights
-
-// ------------------------------------
-// Shading process:
-// ------------------------------------
-// Determine which cluster contains the current fragment.
-// Retrieve the number of lights that affect the current fragment from the cluster’s data.
-// Initialize a variable to accumulate the total light contribution for the fragment.
-// For each light in the cluster:
-//     Access the light's properties using its index.
-//     Calculate the contribution of the light based on its position, the fragment’s position, and the surface normal.
-//     Add the calculated contribution to the total light accumulation.
-// Multiply the fragment’s diffuse color by the accumulated light contribution.
-// Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
-
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
-
-@group(${bindGroup_depth}) @binding(0) var depthTex: texture_2d<f32>;
-@group(${bindGroup_depth}) @binding(1) var depthTexSampler: sampler;
 
 struct FragmentInput
 {
@@ -44,12 +24,11 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let viewPos: vec4f = cameraUniforms.viewMat * vec4f(worldPos, 1f);    
     let depth: f32 = -viewPos.z;
 
-    let clusterX: u32 = u32(fragPos.x / ${tileSize}); // yeah somehow convert fragPos to XY cluster
+    let clusterX: u32 = u32(fragPos.x / ${tileSize});
     let clusterY: u32 = u32(fragPos.y / ${tileSize});
     let clusterZ: u32 = (u32(depth) / ${sliceLength});
     let clusterDepth: f32 = f32(clusterZ) / f32(clusterSet.numClustersZ);
 
-    // now we access our awesome.. cluster baby
     let clusterID = clusterX + (clusterY * clusterSet.numClustersX) + (clusterZ * (clusterSet.numClustersX * clusterSet.numClustersY));
 
     let cluster: Cluster = clusterSet.clusters[clusterID];
@@ -69,15 +48,8 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     return vec4(finalColor, 1);
     
-    let hash = fract(sin(f32(clusterID) * 43758.5453) * 43758.5453);
-    var randColor = vec3f(
-        f32(clusterX) / f32(clusterSet.numClustersX),
-        f32(clusterY) / f32(clusterSet.numClustersY),
-        f32(clusterZ) / f32(clusterSet.numClustersZ));
-
-    var numLightsMapOrSomething: f32 = f32(numLights) / ${maxLightsPerCluster};
-
-    return vec4f(numLightsMapOrSomething, numLightsMapOrSomething, numLightsMapOrSomething, 1f);
-
+    // Debugging stuff
+    // var numLightsMapOrSomething: f32 = f32(numLights) / ${maxLightsPerCluster};
+    // return vec4f(numLightsMapOrSomething, numLightsMapOrSomething, numLightsMapOrSomething, 1f);
     // return vec4(finalColor * (numLightsMapOrSomething + 0.1f), 1);
 }

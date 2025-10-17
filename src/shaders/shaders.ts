@@ -27,14 +27,15 @@ export const constants = {
     bindGroup_scene: 0,
     bindGroup_model: 1,
     bindGroup_material: 2,
-    bindGroup_depth: 3,
-
     moveLightsWorkgroupSize: 128,
 
     numSlices: 32,
     sliceLength: 1,
     tileSize: 128,
     maxLightsPerCluster: 128,
+
+    near: 0.1,
+    far: 5000,
     
     lightRadius: 1
 };

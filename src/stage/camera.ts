@@ -2,8 +2,10 @@ import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
+import * as shaders from '../shaders/shaders';
+
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(3 * 16 * 4 + 16);
+    readonly buffer = new ArrayBuffer(4 * 16 * 4 + 16);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -20,8 +22,12 @@ class CameraUniforms {
         this.floatView.set(mat.subarray(0, 16), 32);
     }
 
+    set invViewProjMat(mat: Float32Array) {
+        this.floatView.set(mat.subarray(0, 16), 48)
+    }
+
     set screenDimensions(dims: Float32Array) {
-        this.floatView.set(dims.subarray(0, 2), 48);
+        this.floatView.set(dims.subarray(0, 2), 64);
     }
 }
 
@@ -39,8 +45,8 @@ export class Camera {
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
 
-    static readonly nearPlane = 0.1;
-    static readonly farPlane = 5000;
+    static readonly nearPlane = shaders.constants.near;
+    static readonly farPlane = shaders.constants.far;
 
     keys: { [key: string]: boolean } = {};
 
@@ -153,6 +159,8 @@ export class Camera {
         this.uniforms.viewMat = viewMat;
 
         this.uniforms.invProjMat = mat4.inverse(this.projMat);
+
+        this.uniforms.invViewProjMat = mat4.inverse(viewProjMat);
 
         this.uniforms.screenDimensions = new Float32Array([canvas.width, canvas.height]);
 

@@ -63,52 +63,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
-        /*
-        // If time permits, bring this back and try out an approach to 
-        // just do a simple depth-prepass instead of using expensive matrix multiplications
-        // to reverse engineer the depth.
-        // I feel like most engines nowadays use depth-prepasses for 
-
-        // sampler for depth texture
-        let depthSampler = renderer.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear'
-        });
-
-        this.depthBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "depth bind group layout",
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "depth",
-                        viewDimension: "2d"
-                    }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {}
-                }
-            ]
-        });
-
-        this.depthBindGroup = renderer.device.createBindGroup({
-            label: "depth bind group",
-            layout: this.depthBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: this.depthTextureView
-                },
-                {
-                    binding: 1,
-                    resource: depthSampler
-                }
-            ]
-        });*/
-
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
                 label: "naive pipeline layout",
