@@ -51,7 +51,7 @@ export class Lights {
     numClustersZ = this.slices;
 
     maxNumClusters = this.numClustersX * this.numClustersY * this.numClustersZ;
-    floatsPerCluster = 73;
+    floatsPerCluster = 4 + 4 + 3 + shaders.constants.maxLightsPerCluster;
 
     clustersArray = new Float32Array(this.maxNumClusters * this.floatsPerCluster);
     clusterSetStorageBuffer: GPUBuffer;
@@ -61,6 +61,8 @@ export class Lights {
     getClusterBoundsComputePipeline: GPUComputePipeline;
 
     clusterLightsComputePipeline: GPUComputePipeline;
+
+    debugStopLights = false;
     
     constructor(camera: Camera) {
         this.camera = camera;
@@ -267,12 +269,22 @@ export class Lights {
 
         computePass.setPipeline(this.clusterLightsComputePipeline);
         computePass.setBindGroup(0, this.getClusterBoundsComputeBindGroup); // switched my bind group to 1... don't know what this does
-        computePass.dispatchWorkgroups(this.numClustersX * this.numClustersY * this.numClustersZ);
+
+        const workgroups = Math.ceil((this.numClustersX * this.numClustersY * this.numClustersZ) / shaders.constants.moveLightsWorkgroupSize);
+
+        computePass.dispatchWorkgroups(workgroups);
         computePass.end();
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
+        if (this.debugStopLights)
+        {
+            return;
+        }
+
+        this.debugStopLights = true;
+
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance

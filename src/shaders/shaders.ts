@@ -33,9 +33,9 @@ export const constants = {
 
     sliceLength: 2,
     tileSize: 100,
-    maxLightsPerCluster: 128,
+    maxLightsPerCluster: 64,
     
-    lightRadius: 2
+    lightRadius: 1
 };
 
 // =================================

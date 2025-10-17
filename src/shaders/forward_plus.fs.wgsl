@@ -46,7 +46,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     let clusterX: u32 = u32(fragPos.x / ${tileSize}); // yeah somehow convert fragPos to XY cluster
     let clusterY: u32 = u32(fragPos.y / ${tileSize});
-    let clusterZ: u32 = (u32(depth) / 2u);
+    let clusterZ: u32 = (u32(depth) / ${sliceLength});
     let clusterDepth: f32 = f32(clusterZ) / f32(clusterSet.numClustersZ);
 
     // now we access our awesome.. cluster baby
@@ -65,8 +65,17 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     var finalColor = diffuseColor.rgb;
     finalColor *= (totalLightContrib + vec3f(0.3, 0.3, 0.3));
 
-    return vec4(finalColor, 1);
+    let notNDC = viewPos.x;
 
-    //let numLightsMapOrSomething: f32 = f32(numLights) / 128f;
-    //return vec4(numLightsMapOrSomething, numLightsMapOrSomething, numLightsMapOrSomething, 1);
+    //return vec4(finalColor, 1);
+    
+    let hash = fract(sin(f32(clusterID) * 43758.5453) * 43758.5453);
+    var randColor = vec3f(
+        f32(clusterX) / f32(clusterSet.numClustersX),
+        f32(clusterY) / f32(clusterSet.numClustersY),
+        f32(clusterZ) / f32(clusterSet.numClustersZ));
+
+    var numLightsMapOrSomething: f32 = f32(numLights) / ${maxLightsPerCluster};
+
+    return vec4(finalColor * (numLightsMapOrSomething + 0.1f), 1);
 }

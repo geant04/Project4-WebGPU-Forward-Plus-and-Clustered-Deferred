@@ -31,6 +31,24 @@ fn testAABBSphereIntersection(minAABB: vec3f, maxAABB: vec3f, position: vec3f, r
     return dot(closestToSphereCenter, closestToSphereCenter) <= radius * radius;
 }
 
+// The awesome hail mary play baby
+fn screenToView(screen: vec4f) -> vec4f {
+    let texCoord = screen.xy / cameraUniforms.screenDimensions;
+    let clip = vec4f(vec2f(texCoord.x, 1f - texCoord.y) * 2f - 1f, screen.z, screen.w);
+    let view = cameraUniforms.invProjMat * clip;
+
+    return view / view.w;
+}
+
+fn lineIntersectionToZPlane(a: vec3f, b: vec3f, distance: f32) -> vec3f {
+    let normal = vec3f(0f, 0f, 1f);
+    let ab = b - a;
+
+    let t = (distance - dot(normal, a)) / dot(normal, ab);
+    let result = a + t * ab;
+    return result; 
+}
+
 
 // CHECKITOUT: this is an example of a compute shader entry point function
 @compute
@@ -51,15 +69,10 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u) {
     // debug maxDepth uniform handling later, but for now yeah we're just going to accept that this is messed up
     // right now we hardcoded the frick out of this lol
     let uniformSliceLength: f32 = ${sliceLength}; // maxDepth / f32(numClustersZ);
-    let minZ: f32 = uniformSliceLength * f32(globalIdx.z);
-    let maxZ: f32 = uniformSliceLength * f32(globalIdx.z + 1);
+    var minZ: f32 = uniformSliceLength * f32(globalIdx.z);
+    var maxZ: f32 = uniformSliceLength * f32(globalIdx.z + 1);
     clusterSet.clusters[clusterID].minZ = minZ; // uniformSliceLength * f32(globalIdx.z);
     clusterSet.clusters[clusterID].maxZ = maxZ; // uniformSliceLength * f32(globalIdx.z + 1);
-
-    // OK we're going to do some heinous stuff to build the frustum ACCURATELY!
-    // these are BEAUTIFULLY hardcoded.
-    let tileWidth: f32 = ${tileSize};
-    let tileHeight: f32 = ${tileSize};
 
     // Tile 2D points are in NDC from [-1, 1] in XY respectively.
     let ndcTileWidth: f32 = 1f / f32(numClustersX);
@@ -70,29 +83,62 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u) {
     // rightX = 2f * tileX * ndcTileWidth + 2f * ndcTileWidth - 1f
     // rightX = (2f * tileX * ndcTileWidth - 1) + 2f * ndcTileWidth
     // rightX = leftX + 2f * ndcTileWidth
-
+    
+/*
     let leftX: f32 = 2f * (f32(globalIdx.x) * ndcTileWidth) - 1f;
     let rightX: f32 = leftX + 2f * ndcTileWidth; 
-    let topY: f32 = 2f * (f32(globalIdx.y + 1) * ndcTileHeight) - 1f;
+    let topY: f32 = 1f - (2f * (f32(globalIdx.y + 1) * ndcTileHeight) - 1f);
     let bottomY: f32 = topY - ndcTileHeight;
+*/
 
-    let tileTR: vec4f = vec4f(rightX, topY, 1f, 1f);
+    let ssMaxPoint = vec4f(vec2f(f32(globalIdx.x + 1), f32(globalIdx.y + 1)) * ${tileSize}, -1f, 1f);
+    let ssMinPoint = vec4f(vec2f(f32(globalIdx.x), f32(globalIdx.y)) *  ${tileSize}, -1f, 1f);
+
+    let viewMaxPoint = screenToView(ssMaxPoint).xyz;
+    let viewMinPoint = screenToView(ssMinPoint).xyz;
+
+    let eye = vec3f(0, 0, 0);
+
+    minZ = 0;
+    maxZ = 10000f;
+
+    let minPointNear = lineIntersectionToZPlane(eye, viewMinPoint, minZ);
+    let minPointFar = lineIntersectionToZPlane(eye, viewMinPoint, maxZ);
+    let maxPointNear = lineIntersectionToZPlane(eye, viewMaxPoint, minZ);
+    let maxPointFar = lineIntersectionToZPlane(eye, viewMaxPoint, maxZ);
+
+    let minPointAABB = min(min(minPointNear, minPointFar), min(maxPointNear, maxPointFar));
+    let maxPointAABB = max(max(minPointNear, minPointFar), max(maxPointNear, maxPointFar));
+
+
+    var leftX: f32 = f32(globalIdx.x) * ndcTileWidth;
+    var rightX: f32 = leftX + ndcTileWidth;
+    var bottomY: f32 = f32(globalIdx.y) * ndcTileHeight;
+    var topY: f32 = bottomY + ndcTileHeight;
+
+    topY = 1f - topY;
+    bottomY = 1f - bottomY;
+
+    leftX = 2f * leftX - 1f;
+    rightX = 2f * rightX - 1f;
+    bottomY = 2f * bottomY - 1f;
+    topY = 2f * topY - 1f;
+
+    let tileTR: vec4f = vec4f(rightX, topY, -1f, 1f);
     let tileBL: vec4f = vec4f(leftX, bottomY, 1f, 1f);
 
+    // Tiles by this point are in NDC.
     // Convert tile to viewSpace
     var viewTR = cameraUniforms.invProjMat * tileTR;
     var viewBL = cameraUniforms.invProjMat * tileBL;
 
-    // build AABB
-    clusterSet.clusters[clusterID].minAABB.x = viewBL.x;
-    clusterSet.clusters[clusterID].minAABB.y = viewBL.y;
-    clusterSet.clusters[clusterID].minAABB.z = 0;
+    viewTR /= viewTR.w;
+    viewBL /= viewBL.w;
 
-    clusterSet.clusters[clusterID].maxAABB.x = viewTR.x;
-    clusterSet.clusters[clusterID].maxAABB.y = viewTR.y;
-    clusterSet.clusters[clusterID].maxAABB.z = 10000;
-
-    clusterSet.clusters[clusterID].numLights = clusterID;
+    // awesome aabb time
+    let ep = 1f;
+    clusterSet.clusters[clusterID].minAABB = vec3f(-1000f, -1000f, 0f); // vec3f(viewBL.x - ep, viewBL.y - ep, minZ);
+    clusterSet.clusters[clusterID].maxAABB = vec3f(1000f, 1000f, 1000f); // vec3f(viewTR.x + ep, viewTR.y + ep, maxZ);
 
     return;
 }
@@ -124,11 +170,10 @@ fn clusterLights(@builtin(global_invocation_id) globalIdx: vec3u) {
 
         // TO DO: more refined uhh light identification
         // Need to transform lightZ to the view Z to match the cluster's Z sapce
-        let viewLightPos: vec4f = cameraUniforms.viewMat * vec4f(light.pos, 1f);
-        let lightDepth: f32 = -viewLightPos.z;
+        var viewLightPos: vec4f = cameraUniforms.viewMat * vec4f(light.pos, 1f);
+        viewLightPos.z = -viewLightPos.z;
 
-        let isIntersected: bool = testAABBSphereIntersection(cluster.minAABB, cluster.maxAABB, viewLightPos.xyz, ${lightRadius});
-
+        var isIntersected: bool = testAABBSphereIntersection(cluster.minAABB, cluster.maxAABB, viewLightPos.xyz, ${lightRadius});
         if (isIntersected && clusterLightArrayIdx < maxLightsPerCluster)
         {
             // Is there a way to use references for this assignment?
@@ -137,8 +182,7 @@ fn clusterLights(@builtin(global_invocation_id) globalIdx: vec3u) {
         }
     }
 
-    clusterSet.clusters[clusterID].numLights = (clusterLightArrayIdx + 20u);
-    // clusterSet.clusters[clusterID].numLights = u32(5000f * (0.5f * (cluster.maxAABB.x) + 0.5f));//(clusterLightArrayIdx + 1u) * 2000u;
-    
+    clusterSet.clusters[clusterID].numLights = clusterLightArrayIdx;
+
     return;
 }
