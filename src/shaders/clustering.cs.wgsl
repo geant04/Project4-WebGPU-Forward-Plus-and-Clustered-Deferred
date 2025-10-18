@@ -49,7 +49,7 @@ fn lineIntersectionToZPlane(a: vec3f, b: vec3f, distance: f32) -> vec3f {
 
 
 @compute
-@workgroup_size(${clusterLightsWorkgroupX}, ${clusterLightsWorkgroupY}, ${clusterLightsWorkgroupZ})
+@workgroup_size(16, 8, 2)
 fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u){
     let numClustersX = clusterSet.numClustersX;
     let numClustersY = clusterSet.numClustersY;
@@ -68,12 +68,13 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u){
     let clusterID = (clusterX) + (clusterY * numClustersX) + (clusterZ * (numClustersX * numClustersY));
 
 
-    let uniformSliceLength: f32 = ${sliceLength};
+    let uniformSliceLength: f32 = 1f; // ${sliceLength};
     var minZ: f32 = -uniformSliceLength * f32(globalIdx.z);
     var maxZ: f32 = -uniformSliceLength * f32(globalIdx.z + 1);
 
-    let ssMaxPoint = vec4f(vec2f(f32(globalIdx.x + 1), f32(globalIdx.y + 1)) * ${tileSize}, -1f, 1f);
-    let ssMinPoint = vec4f(vec2f(f32(globalIdx.x), f32(globalIdx.y)) *  ${tileSize}, -1f, 1f);
+    let tileSize: f32 = 256f; // ${tileSize}
+    let ssMaxPoint = vec4f(vec2f(f32(globalIdx.x + 1), f32(globalIdx.y + 1)) * tileSize, -1f, 1f);
+    let ssMinPoint = vec4f(vec2f(f32(globalIdx.x), f32(globalIdx.y)) *  tileSize, -1f, 1f);
 
     let viewMaxPoint = screenToView(ssMaxPoint).xyz;
     let viewMinPoint = screenToView(ssMinPoint).xyz;
@@ -90,7 +91,7 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u){
 
     // Everything below this point is rock solid, I think.
     var clusterLightArrayIdx: u32 = 0;
-    let maxLightsPerCluster: u32 = ${maxLightsPerCluster};
+    let maxLightsPerCluster: u32 = 1024u; // ${maxLightsPerCluster};
 
     for (var lightIdx = 0u; lightIdx < lightSet.numLights && clusterLightArrayIdx < maxLightsPerCluster; lightIdx++) {
         let light = lightSet.lights[lightIdx];
@@ -108,52 +109,6 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u){
     }
 
     clusterSet.clusters[clusterID].numLights = clusterLightArrayIdx;
-
-    return;
-}
-
-
-// ------------------------------------
-// Assigning lights to clusters:
-// ------------------------------------
-// For each cluster:
-//     - Initialize a counter for the number of lights in this cluster.
-
-//     For each light:
-//         - Check if the light intersects with the cluster’s bounding box (AABB).
-//         - If it does, add the light to the cluster's light list.
-//         - Stop adding lights if the maximum number of lights is reached.
-
-//     - Store the number of lights assigned to this cluster.
-@compute
-@workgroup_size(${moveLightsWorkgroupSize})
-fn clusterLights(@builtin(global_invocation_id) globalIdx: vec3u) {
-    let clusterID: u32 = globalIdx.x;
-
-    var cluster: Cluster = clusterSet.clusters[clusterID];
-    var clusterLightArrayIdx: u32 = 0;
-    let maxLightsPerCluster: u32 = ${maxLightsPerCluster};
-
-/*
-    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        let light = lightSet.lights[lightIdx];
-
-        // TO DO: more refined uhh light identification
-        // Need to transform lightZ to the view Z to match the cluster's Z sapce
-        var viewLightPos: vec4f = cameraUniforms.viewMat * vec4f(light.pos, 1f);
-        viewLightPos.z = -viewLightPos.z;
-
-        var isIntersected: bool = testAABBSphereIntersection(cluster.minAABB, cluster.maxAABB, viewLightPos.xyz, ${lightRadius});
-        if (isIntersected && clusterLightArrayIdx < maxLightsPerCluster)
-        {
-            // Is there a way to use references for this assignment?
-            clusterSet.clusters[clusterID].lightIndices[clusterLightArrayIdx] = lightIdx;
-            clusterLightArrayIdx++;
-        }
-    }
-
-    clusterSet.clusters[clusterID].numLights = clusterLightArrayIdx;
-*/
 
     return;
 }

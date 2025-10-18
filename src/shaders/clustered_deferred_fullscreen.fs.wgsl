@@ -1,9 +1,9 @@
 // TODO-3: implement the Clustered Deferred fullscreen fragment shader
 
 // Similar to the Forward+ fragment shader, but with vertex information coming from the G-buffer instead.
-@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
+@group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(0) @binding(1) var<storage, read> lightSet: LightSet;
+@group(0) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
 @group(1) @binding(0) var normalTexture: texture_2d<f32>;
 @group(1) @binding(1) var albedoTexture: texture_2d<f32>;
@@ -23,13 +23,16 @@ fn main(@builtin(position) fragPos : vec4f) -> @location(0) vec4f {
     let depth: f32 = textureLoad( depthTexture, vec2i(floor(fragPos.xy)), 0 ).x;
     let position = world_from_screen_coord(fragPos.xy / vec2f(textureDimensions(depthTexture)), depth);
 
-    let nearZ: f32 = ${near};
-    let farZ: f32 = ${far};
+    let nearZ: f32 = 0.1f; //${near};
+    let farZ: f32 = 5000; //${far};
     let viewDepth: f32 = (nearZ * farZ) / (farZ - depth * (farZ - nearZ));
 
-    let clusterX: u32 = u32(fragPos.x / ${tileSize});
-    let clusterY: u32 = u32(fragPos.y / ${tileSize});
-    let clusterZ: u32 = (u32(viewDepth) / ${sliceLength});
+    let tileSize = 256f; // f32(${tileSize});
+    let sliceLength = 1u; // u32(${sliceLength});
+
+    let clusterX: u32 = u32(fragPos.x / tileSize);
+    let clusterY: u32 = u32(fragPos.y / tileSize);
+    let clusterZ: u32 = (u32(viewDepth) / sliceLength);
     let clusterDepth: f32 = f32(clusterZ) / f32(clusterSet.numClustersZ);
 
     let clusterID = clusterX + (clusterY * clusterSet.numClustersX) + (clusterZ * (clusterSet.numClustersX * clusterSet.numClustersY));

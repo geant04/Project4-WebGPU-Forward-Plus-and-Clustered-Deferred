@@ -1,9 +1,9 @@
-@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
+@group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(0) @binding(1) var<storage, read> lightSet: LightSet;
+@group(0) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
-@group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
-@group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
+@group(2) @binding(0) var diffuseTex: texture_2d<f32>;
+@group(2) @binding(1) var diffuseTexSampler: sampler;
 
 struct FragmentInput
 {
@@ -27,9 +27,12 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let viewPos: vec4f = cameraUniforms.viewMat * vec4f(worldPos, 1f);    
     let depth: f32 = -viewPos.z;
 
-    let clusterX: u32 = u32(fragPos.x / ${tileSize});
-    let clusterY: u32 = u32(fragPos.y / ${tileSize});
-    let clusterZ: u32 = (u32(depth) / ${sliceLength});
+    let tileSize = 256f; // f32(${tileSize});
+    let sliceLength = 1u; // u32(${sliceLength});
+
+    let clusterX: u32 = u32(fragPos.x / tileSize);
+    let clusterY: u32 = u32(fragPos.y / tileSize);
+    let clusterZ: u32 = (u32(depth) / sliceLength);
     let clusterDepth: f32 = f32(clusterZ) / f32(clusterSet.numClustersZ);
 
     let clusterID = clusterX + (clusterY * clusterSet.numClustersX) + (clusterZ * (clusterSet.numClustersX * clusterSet.numClustersY));
