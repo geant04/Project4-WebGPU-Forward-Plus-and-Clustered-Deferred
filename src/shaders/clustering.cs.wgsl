@@ -99,7 +99,7 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u){
         // Need to transform lightZ to the view Z to match the cluster's Z sapce
         var viewLightPos: vec4f = cameraUniforms.viewMat * vec4f(light.pos, 1f);
 
-        var isIntersected: bool = testAABBSphereIntersection(minPointAABB, maxPointAABB, viewLightPos.xyz, ${lightRadius});
+        var isIntersected: bool = testAABBSphereIntersection(minPointAABB, maxPointAABB, viewLightPos.xyz, 2);
         if (isIntersected)
         {
             // Is there a way to use references for this assignment?
