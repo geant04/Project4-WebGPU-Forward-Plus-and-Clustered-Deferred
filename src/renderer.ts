@@ -2,6 +2,7 @@ import { Scene } from './stage/scene';
 import { Lights } from './stage/lights';
 import { Camera } from './stage/camera';
 import { Stage } from './stage/stage';
+import * as shaders from './shaders/shaders';
 
 export var canvas: HTMLCanvasElement;
 export var canvasFormat: GPUTextureFormat;
@@ -140,7 +141,7 @@ export abstract class Renderer {
 
         this.draw();
         
-        if (true)
+        if (shaders.constants.performanceTesting)
         {
             await device.queue.onSubmittedWorkDone();
         }

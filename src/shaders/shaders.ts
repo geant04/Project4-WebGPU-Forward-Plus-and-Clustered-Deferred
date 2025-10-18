@@ -30,13 +30,15 @@ export const constants = {
     moveLightsWorkgroupSize: 128,
 
     clusterLightsWorkgroupX: 16,
-    clusterLightsWorkgroupY: 16,
-    clusterLightsWorkgroupZ: 1,
+    clusterLightsWorkgroupY: 8,
+    clusterLightsWorkgroupZ: 2,
 
     numSlices: 32,
     sliceLength: 1,
-    tileSize: 64,
-    maxLightsPerCluster: 256,
+    tileSize: 256,
+    maxLightsPerCluster: 512,
+
+    performanceTesting: false,
 
     near: 0.1,
     far: 5000,

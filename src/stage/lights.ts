@@ -251,7 +251,7 @@ export class Lights {
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
-        if (this.debugStopLights)
+        if (this.debugStopLights && shaders.constants.performanceTesting)
         {
             return;
         }
