@@ -36,14 +36,14 @@ export const constants = {
     numSlices: 32,
     sliceLength: 1,
     tileSize: 256,
-    maxLightsPerCluster: 512,
+    maxLightsPerCluster: 1024,
 
     performanceTesting: false,
 
     near: 0.1,
     far: 5000,
     
-    lightRadius: 1
+    lightRadius: 2
 };
 
 // =================================
