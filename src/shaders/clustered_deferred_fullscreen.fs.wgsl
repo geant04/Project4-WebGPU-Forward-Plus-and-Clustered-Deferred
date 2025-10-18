@@ -34,12 +34,9 @@ fn main(@builtin(position) fragPos : vec4f) -> @location(0) vec4f {
 
     let clusterID = clusterX + (clusterY * clusterSet.numClustersX) + (clusterZ * (clusterSet.numClustersX * clusterSet.numClustersY));
 
-    let cluster: Cluster = clusterSet.clusters[clusterID];
-    let numLights: u32 = cluster.numLights;
-
     var totalLightContrib = vec3f(0, 0, 0);
-    for (var clusterLightIdx = 0u; clusterLightIdx < numLights; clusterLightIdx++) {
-        let lightIdx = cluster.lightIndices[clusterLightIdx];
+    for (var clusterLightIdx = 0u; clusterLightIdx < clusterSet.clusters[clusterID].numLights; clusterLightIdx++) {
+        let lightIdx = clusterSet.clusters[clusterID].lightIndices[clusterLightIdx];
         let light = lightSet.lights[lightIdx];
         totalLightContrib += calculateLightContrib(light, position, normalize(normal));
     }

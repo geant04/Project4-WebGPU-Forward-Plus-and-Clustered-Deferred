@@ -49,19 +49,24 @@ fn lineIntersectionToZPlane(a: vec3f, b: vec3f, distance: f32) -> vec3f {
 
 
 @compute
-@workgroup_size(1, 1, 1)
-fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u) {
+@workgroup_size(${clusterLightsWorkgroupX}, ${clusterLightsWorkgroupY}, ${clusterLightsWorkgroupZ})
+fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u){
     let numClustersX = clusterSet.numClustersX;
     let numClustersY = clusterSet.numClustersY;
     let numClustersZ = clusterSet.numClustersZ;
     let numClusters = numClustersX * numClustersY * numClustersZ;
 
-    let clusterID = globalIdx.x + (globalIdx.y * numClustersX) + (globalIdx.z * (numClustersX * numClustersY));
+    let clusterX = globalIdx.x;
+    let clusterY = globalIdx.y;
+    let clusterZ = globalIdx.z;
 
-    if (clusterID >= numClusters)
+    if ( (clusterX >= numClustersX) || (clusterY >= numClustersY) || (clusterZ >= numClustersZ) ) 
     {
         return;
     }
+
+    let clusterID = (clusterX) + (clusterY * numClustersX) + (clusterZ * (numClustersX * numClustersY));
+
 
     let uniformSliceLength: f32 = ${sliceLength};
     var minZ: f32 = -uniformSliceLength * f32(globalIdx.z);
@@ -87,14 +92,14 @@ fn getClusterBounds(@builtin(global_invocation_id) globalIdx: vec3u) {
     var clusterLightArrayIdx: u32 = 0;
     let maxLightsPerCluster: u32 = ${maxLightsPerCluster};
 
-    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+    for (var lightIdx = 0u; lightIdx < lightSet.numLights && clusterLightArrayIdx < maxLightsPerCluster; lightIdx++) {
         let light = lightSet.lights[lightIdx];
 
         // Need to transform lightZ to the view Z to match the cluster's Z sapce
         var viewLightPos: vec4f = cameraUniforms.viewMat * vec4f(light.pos, 1f);
 
         var isIntersected: bool = testAABBSphereIntersection(minPointAABB, maxPointAABB, viewLightPos.xyz, ${lightRadius});
-        if (isIntersected && clusterLightArrayIdx < maxLightsPerCluster)
+        if (isIntersected)
         {
             // Is there a way to use references for this assignment?
             clusterSet.clusters[clusterID].lightIndices[clusterLightArrayIdx] = lightIdx;

@@ -127,7 +127,7 @@ export abstract class Renderer {
     protected abstract draw(): void;
 
     // CHECKITOUT: this is the main rendering loop
-    private onFrame(time: number) {
+    private async onFrame(time: number) {
         if (this.prevTime == 0) {
             this.prevTime = time;
         }
@@ -139,6 +139,11 @@ export abstract class Renderer {
         this.stats.begin();
 
         this.draw();
+        
+        if (true)
+        {
+            await device.queue.onSubmittedWorkDone();
+        }
 
         this.stats.end();
 

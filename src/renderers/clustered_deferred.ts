@@ -1,6 +1,5 @@
 import * as renderer from '../renderer';
 import * as shaders from '../shaders/shaders';
-import * as lights from '../stage/lights';
 
 import { Stage } from '../stage/stage';
 

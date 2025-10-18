@@ -13,8 +13,8 @@ function hueToRgb(h: number) {
 export class Lights {
     private camera: Camera;
 
-    numLights = 500;
-    static readonly maxNumLights = 5000;
+    numLights = 10000;
+    static readonly maxNumLights = 10000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
     static readonly lightIntensity = 0.1;
@@ -240,17 +240,24 @@ export class Lights {
         computePass.setPipeline(this.getClusterBoundsComputePipeline);
         computePass.setBindGroup(0, this.getClusterBoundsComputeBindGroup); // switched my bind group to 1... don't know what this does
 
-        const workgroupX = Math.ceil(this.numClustersX / shaders.constants.moveLightsWorkgroupSize);
-        const workgroupY = Math.ceil(this.numClustersY / shaders.constants.moveLightsWorkgroupSize);
-        const workgroupZ = Math.ceil(this.numClustersZ / shaders.constants.moveLightsWorkgroupSize);
+        const workgroupX = Math.ceil(this.numClustersX / shaders.constants.clusterLightsWorkgroupX);
+        const workgroupY = Math.ceil(this.numClustersY / shaders.constants.clusterLightsWorkgroupY);
+        const workgroupZ = Math.ceil(this.numClustersZ / shaders.constants.clusterLightsWorkgroupZ);
 
-        computePass.dispatchWorkgroups(this.numClustersX, this.numClustersY, this.numClustersZ);
+        computePass.dispatchWorkgroups(workgroupX, workgroupY, workgroupZ);
 
         computePass.end();
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
+        if (this.debugStopLights)
+        {
+            return;
+        }
+
+        this.debugStopLights = !this.debugStopLights;
+
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance

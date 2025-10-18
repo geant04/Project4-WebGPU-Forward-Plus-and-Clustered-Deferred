@@ -26,8 +26,15 @@ fn main(in: FragmentInput) -> FragmentOutput
 {
     var output: FragmentOutput;
 
-    output.normal = vec4f(in.nor, 1f);
-    output.albedo = textureSample(diffuseTex, diffuseTexSampler, in.uv);
+    let sampledAlbedo = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     
+    if (sampledAlbedo.a < 0.5f)
+    {
+        discard;
+    }
+
+    output.normal = vec4f(in.nor, 1f);
+    output.albedo= sampledAlbedo;
+
     return output;
 }
