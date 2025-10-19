@@ -2,10 +2,10 @@ WebGL Forward+ and Clustered Deferred Shading
 ======================
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
-
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) **Google Chrome 222.2** on
-  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Anthony Ge
+  * [LinkedIn](https://www.linkedin.com/in/anthonyge/), [personal website](https://www.geant.pro)
+* Tested on: Windows 11, i9-13900H @ 2600 Mhz 16GB, NVIDIA 
+GeForce RTX 4070 Laptop GPU 8GB (personal)
 
 ### Live Demo
 
@@ -161,7 +161,7 @@ As noted previously, both the deferred and forward plus solutions scaled much be
 
 Ms for naive increases in a linear fashion, while both forward plus and deferred scale nearly logarithmically. This is mostly from the localized binning of the lights, allowing lesser lighting calculations per fragment based on the cluster. Deferred runs much faster than forward because of the single light shading for what's on screen, avoiding overdraw from Sponza's complex geometry.
 
-I would expect that for simpler scenes, like a simeple plane, the overhead from sampling deferred's expensive texture formats would cause worse performance compared to forward plus, which has most fragments present on screen immediately with little overdraw.
+I would expect that for simpler scenes, like a simple plane, the overhead from sampling deferred's expensive texture formats would cause worse performance compared to forward plus, which has most fragments present on screen immediately with little overdraw.
 
 ---
 ### Performance vs. Number of Clusters (Based on Tile Size)
@@ -179,18 +179,35 @@ While it seems more ideal to have more clusters then to process less lights, thi
 ### Performance vs. Varying Workgroup Sizes
 ![workgroups](img/workgroupPerf.png)
  
+For this test, I wanted to see if changing the dimensions of the work groups impacted performance, or in other words, if the different number of workgroups dispatched changed performance. 
+
+In all cases besides (1,1,1), I tested between different combinations of numbers with products equaling 256, the max number of threads dispatched in a group. 
+
+For launching one giant block of 256 threads, the performance was signifcantly slow, presumably from the lack of caching per thread in their respective group. Using a ratio of 2:1 in varying 16,8 or 8,16 configurations for the next test seemed to improve performance significantly over an equal 8,8 configuration that used more threads in the z dimension. I assume the performance worked for thread group sizes with less z because most of the cluster processing is in the XY dimensions compared to z. I think the unequal configuration also produced better results because of how the clusters are organized based on the screen dimensions of width and height, potentially leading to better cache access in our cluster list array. While performance with 16,16,1 was good, it wasn't as good as the non-square configurations, though ultimately the results were very similar all throughout.
 
 ---
 ### Performance vs. Cluster Light Size
 ![cluster](img/maxLightsPerf.png)
 
+My final test profiled performance against increasing max lights per cluster - mostly testing to see if there were any performance hits from using more data per cluster. 
+
+There is a measured performance impact, where for forward plus the delta is ~0.49ms from 128 to 1024 lights and ~0.16ms for deferred, where the impact is only really noticeable from 512 to 1024 lights. This is most likely from increased bandwidth, as each cluster is ultimately more expensive to load and process the more lights there can be.
+
+Across forward plus and deferred at least, I expect cache thrashing to be behind the differences, where discarded fragments will have more random tile access compared to deferred only referencing what's visible on screen.
+
 ---
-### Overall Conclusions
+### Overall Conclusions + Potential Optimizations
+It was very nice to see what clustered deferred worked really well compared to forward plus and naive. I was initially surprised by the results, since I thought the memory bandwidth of deferred would've certainly made it performance worse compared to forward. 
 
+I also assumed that we would implement 2D tiled rendering using the Z-range optimization, as I thought there could be some situations that the 2D without clusters would perform better due to less memory overhead. I don't think most engines nowadays use a pure cluster implementation, and rather a mix of forward plus and some Z-binning type thing mentioned in the beginning of the post.
 
+As far as further optimizations go, I did not implement logarithmic near/far plane Z-slices, instead using uniform length slices. There wasn't any good reason for that, mainly just because I used it to test if the implementation worked in the first place and kept it because it worked decently, performance wise.
 
+I also would've wanted to try some further light culling implementations, using viewDepth to skip processing clusters if they're occluded, and then MAYBE using the min/max Z to skip processing lights.
 
+Instead of processing lights per cluster, it's potentially more optimized to instead process clusters per light, where we run compute shaders to process individual lights instead of clusters, and use atomic operations to modify cluster bins. 
 
+For processing the lights per pixel, an interesting blog about [GPU scalarization for consoles by Francesco Cifariello Ciardi](https://flashypixels.wordpress.com/2018/11/10/intro-to-gpu-scalarization-part-2-scalarize-all-the-lights/) uses forward plus lighting as an optimization case study referencing [Drobot's talk about lighting in Infinite Warfare](https://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf), using coherency to assume that most threads in a wave will process similar tiles (in our case, clusters I suppose), which can be scalarized if we process by tiles instead of lights. I don't fully understand it, but if we ever learn advanced wave operations that WGSL supports, I'd happily return to this project and try this out.
 
 ### Credits
 
