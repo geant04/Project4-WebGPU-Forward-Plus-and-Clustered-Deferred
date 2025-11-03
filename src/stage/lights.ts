@@ -13,7 +13,7 @@ function hueToRgb(h: number) {
 export class Lights {
     private camera: Camera;
 
-    numLights = 10;
+    numLights = 1024;
     static readonly maxNumLights = 10000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
@@ -32,14 +32,11 @@ export class Lights {
     maxLightsPerCluster = shaders.constants.maxLightsPerCluster;
 
     // let our slice length be 2, arbitrarily ig
-    // A LOT of this code is set up for the forward+/clustered rendering set up.
-    // Most of this is not necessary for the naive renderer which is pretty much what we only need
-    // to just render different surfaces, like the glints.
-    // I'm going to try and render a ball first, I think, and then get it to work on like a monkey.
     slices = shaders.constants.numSlices;
 
     maxDepth = 20;
 
+    // this needs to change ngl
     screenWidth = canvas.width;
     screenHeight = canvas.height;
 
@@ -65,11 +62,7 @@ export class Lights {
     clusterLightsComputePipeline: GPUComputePipeline;
 
     debugStopLights = false;
-
-    // Light setup debeugging variables for the glints
-    // TODO: Don't hardcode this boolean, make it based on the actual mode
-    enableGlintLightSetup = true;
-
+    
     constructor(camera: Camera) {
         this.camera = camera;
 
@@ -84,7 +77,6 @@ export class Lights {
             size: 16 + this.lightsArray.byteLength, // 16 for numLights + padding
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
-
         this.populateLightsBuffer();
         this.updateLightSetUniformNumLights();
 
@@ -150,6 +142,7 @@ export class Lights {
             }
         });
 
+        // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
         device.queue.writeBuffer(
             this.clusterSetStorageBuffer, 
             0, 
@@ -227,28 +220,11 @@ export class Lights {
     }
 
     private populateLightsBuffer() {
-        
-        if (this.enableGlintLightSetup)
-        {
-            // Just for testing/debugging purposes, we only need to render one light and have its position
-            // somewhere arbitrarily sound.
-            // Only light one source for now
-            
-            const lightColor = new Float32Array([1.0, 1.0, 1.0]);
-            const lightPosition = new Float32Array([-1.6, 1.0, -0.9]);
-
-            this.lightsArray.set(lightPosition, 0);
-            this.lightsArray.set(lightColor, 4);
+        for (let lightIdx = 0; lightIdx < Lights.maxNumLights; ++lightIdx) {
+            // light pos is set by compute shader so no need to set it here
+            const lightColor = vec3.scale(hueToRgb(Math.random()), Lights.lightIntensity);
+            this.lightsArray.set(lightColor, (lightIdx * Lights.numFloatsPerLight) + 4);
         }
-        else
-        {
-            for (let lightIdx = 0; lightIdx < Lights.maxNumLights; ++lightIdx) {
-                // light pos is set by compute shader so no need to set it here
-                const lightColor = vec3.scale(hueToRgb(Math.random()), Lights.lightIntensity);
-                this.lightsArray.set(lightColor, (lightIdx * Lights.numFloatsPerLight) + 4);
-            }
-        }
-
 
         device.queue.writeBuffer(this.lightSetStorageBuffer, 16, this.lightsArray);
     }
@@ -282,24 +258,21 @@ export class Lights {
 
         this.debugStopLights = !this.debugStopLights;
 
-        if (!this.enableGlintLightSetup)
-        {
-            device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
+        device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
-            // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance
-            const encoder = device.createCommandEncoder();
+        // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance
+        const encoder = device.createCommandEncoder();
 
-            const computePass = encoder.beginComputePass();
-            computePass.setPipeline(this.moveLightsComputePipeline);
+        const computePass = encoder.beginComputePass();
+        computePass.setPipeline(this.moveLightsComputePipeline);
 
-            computePass.setBindGroup(0, this.moveLightsComputeBindGroup);
+        computePass.setBindGroup(0, this.moveLightsComputeBindGroup);
 
-            const workgroupCount = Math.ceil(this.numLights / shaders.constants.moveLightsWorkgroupSize);
-            computePass.dispatchWorkgroups(workgroupCount);
+        const workgroupCount = Math.ceil(this.numLights / shaders.constants.moveLightsWorkgroupSize);
+        computePass.dispatchWorkgroups(workgroupCount);
 
-            computePass.end();
+        computePass.end();
 
-            device.queue.submit([encoder.finish()]);
-        }
+        device.queue.submit([encoder.finish()]);
     }
 }

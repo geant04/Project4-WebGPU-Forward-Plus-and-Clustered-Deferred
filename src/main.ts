@@ -5,7 +5,6 @@ import { initWebGPU, Renderer } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
 import { ForwardPlusRenderer } from './renderers/forward_plus';
 import { ClusteredDeferredRenderer } from './renderers/clustered_deferred';
-import { GlintRenderer } from './renderers/glint';
 
 import { setupLoaders, Scene } from './stage/scene';
 import { Lights } from './stage/lights';
@@ -41,9 +40,6 @@ function setRenderer(mode: string) {
         case renderModes.naive:
             renderer = new NaiveRenderer(stage);
             break;
-        case renderModes.glint:
-            renderer = new GlintRenderer(stage);
-            break;
         case renderModes.forwardPlus:
             renderer = new ForwardPlusRenderer(stage);
             break;
@@ -53,8 +49,8 @@ function setRenderer(mode: string) {
     }
 }
 
-const renderModes = { naive: 'naive', glint: 'glint', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred' };
-let renderModeController = gui.add({ mode: renderModes.glint }, 'mode', renderModes);
+const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred' };
+let renderModeController = gui.add({ mode: renderModes.clusteredDeferred }, 'mode', renderModes);
 renderModeController.onChange(setRenderer);
 
 setRenderer(renderModeController.getValue());

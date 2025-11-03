@@ -1,5 +1,5 @@
 {
-  "name": "webgpu-glint-rendering",
+  "name": "cis5650-project4-webgpu-forward-plus-and-clustered-deferred",
   "private": true,
   "version": "0.0.0",
   "type": "module",

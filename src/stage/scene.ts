@@ -24,7 +24,7 @@ function getFloatArray(gltfWithBuffers: GLTFWithBuffers, attribute: number) {
     return new Float32Array(buffer.arrayBuffer, byteOffset, bufferView.byteLength / 4);
 }
 
-export class Texture {
+class Texture {
     image: GPUTexture;
     sampler: GPUSampler;
 
@@ -219,7 +219,6 @@ function createTexture(imageBitmap: ImageBitmap): GPUTexture {
 }
 
 function convertWrapModeEnum(wrapMode: number): GPUAddressMode {
-    console.log(wrapMode);
     switch (wrapMode) {
         case 0x2901: // REPEAT
             return 'repeat';

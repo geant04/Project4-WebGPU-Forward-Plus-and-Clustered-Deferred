@@ -5,12 +5,7 @@ import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 import * as shaders from '../shaders/shaders';
 
 class CameraUniforms {
-    num4x4Matrices = 4;
-    numVec2f = 1;
-    numVec3f = 1;
-    numFloats = this.num4x4Matrices * 16 + (this.numVec2f + this.numVec3f) * 4;
-
-    readonly buffer = new ArrayBuffer((this.numFloats) * 4);
+    readonly buffer = new ArrayBuffer(4 * 16 * 4 + 16);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -31,12 +26,8 @@ class CameraUniforms {
         this.floatView.set(mat.subarray(0, 16), 48)
     }
 
-    set cameraPosition(dims: Float32Array) {
-        this.floatView.set(dims.subarray(0, 3), 64);
-    }
-
     set screenDimensions(dims: Float32Array) {
-        this.floatView.set(dims.subarray(0, 2), 68);
+        this.floatView.set(dims.subarray(0, 2), 64);
     }
 }
 
@@ -45,7 +36,7 @@ export class Camera {
     uniformsBuffer: GPUBuffer;
 
     projMat: Mat4 = mat4.create();
-    cameraPos: Vec3 = vec3.create(-7, 0, 0);
+    cameraPos: Vec3 = vec3.create(-7, 2, 0);
     cameraFront: Vec3 = vec3.create(0, 0, -1);
     cameraUp: Vec3 = vec3.create(0, 1, 0);
     cameraRight: Vec3 = vec3.create(1, 0, 0);
@@ -170,8 +161,6 @@ export class Camera {
         this.uniforms.invProjMat = mat4.inverse(this.projMat);
 
         this.uniforms.invViewProjMat = mat4.inverse(viewProjMat);
-
-        this.uniforms.cameraPosition = new Float32Array(this.cameraPos);
 
         this.uniforms.screenDimensions = new Float32Array([canvas.width, canvas.height]);
 
