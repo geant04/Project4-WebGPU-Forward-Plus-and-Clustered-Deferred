@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/469c22a6-4303-4061-a8cc-edf6c265e64e
 
 ### In this project, I implement three different implementations of real-time lighting methods from a naive O(n) search to clustered forward plus lighting to clustered deferred lighting. 
 
-Most games engines nowadays use a mix of forward plus and clustered forward plus - though many years ago, [DOOM 2016](https://advances.realtimerendering.com/s2016/Siggraph2016_idTech6.pdf) used a form of clustered lights with cleverly scalarized access. 
+Most games engines nowadays use a mix of forward plus and clustered forward plus - many years ago, [DOOM 2016](https://advances.realtimerendering.com/s2016/Siggraph2016_idTech6.pdf) used a form of clustered lights with cleverly scalarized access.
 
 Presented in 2017, Michal Drobot introduces a more optimized version of clustered forward plus through Z-Binning to efficiently bin lights by depth in [Call of Duty : Infinite Warfare](https://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf), improving memory performance from clustered - ultimately, the ideas of forward-plus are still used today in modern real-time rendering to process and render tons of lights.
 
@@ -107,7 +107,7 @@ Here's a heat lightmap of my Sponza scene clusters in a scene with 5,000 lights.
 
 ---
 ### Clustered Deferred Rendering
-To address overdraw and wasted light calculations on fragments not ultimately visible at the end, we can switch back from a forward pipeline to **deferred** to optimize performance.
+To address lighting overdraw on fragments not ultimately visible at the end, we can switch back from a forward pipeline to **deferred** to optimize performance.
 
 Deferred rendering works differently from forward rendering by evaluating all shading calculations in one pass, where we only shade fragments visible to the camera. This is done by using forward rendering to draw our scene to G-Buffers, or textures storing scene information such as albedo (material color), depth, and normal information. 
 
@@ -140,11 +140,11 @@ Deferred rendering works differently from forward rendering by evaluating all sh
 
 </table>
 
-Using these G-Buffers allow us to construct our final scene by compositing the results of our G-Buffers and shading fragments by on-screen only normals, depth, etc.
+Using these G-Buffers allow us to construct our final scene by sampling the results of our G-Buffers and shading fragments by on-screen only normals, depth, etc.
 
-For highly expensive geometric scenes, deferred rendering works wonderfully by reducing heavy wasted shading calculations from overdraw. However, this is at the cost of memory use - assuming our G-buFfers are full resolution with relatively expensive texture formats used per buffer, storing and reading all of our buffers on the GPU can be incredibly expensive during the shading and writing stage.
+For highly expensive geometric scenes, deferred rendering works wonderfully by reducing heavy wasted shading calculations from overdraw, or when the same fragment is continually shaded again due to overlapping geometry. However, this is at the cost of memory use - assuming our G-buFfers are full resolution with relatively expensive texture formats used per buffer, storing and reading all of our buffers on the GPU can be incredibly expensive during the shading and writing stage.
 
-Most games nowadays don't use pure deferred rendering for these memory reasons, and instead opt for a depth-prepass to quickly cull scene info to prevent overdraw. Deferred rendering also makes transparency incredibly difficult and is often ignored in such pipelines.
+Some engines nowadays don't use pure deferred rendering for these memory reasons, and instead opt for forward rendering with a depth-prepass to quickly cull scene info to prevent overdraw, rendering geometry twice, avoiding G-Buffer memory, under the assumption that re-drawing and lighting once is cheaper than lighting the same overdrawn fragment. Deferred rendering also makes transparency incredibly difficult and is often ignored in such pipelines.
 
 ## Performance Analysis
 In theory, using these optimizations, it should stand that clustered deferred should work the best over clustered forward lighting, and with naive as the slowest. I analzyed performance among the three based on different lights, clusters, and work group sizes.
