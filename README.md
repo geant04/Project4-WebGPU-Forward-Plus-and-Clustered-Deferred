@@ -1,4 +1,4 @@
-WebGL Forward+ and Clustered Deferred Shading
+WebGPU Forward+ and Clustered Deferred Shading
 ======================
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
@@ -15,7 +15,7 @@ GeForce RTX 4070 Laptop GPU 8GB (personal)
 ### Demo Video/GIF
 https://github.com/user-attachments/assets/469c22a6-4303-4061-a8cc-edf6c265e64e
 
-### In this project, I implement three different implementations of real-time lighting methods from a naive O(n) search to clustered forward plus lighting to deferred forward plus clustered lighting. 
+### In this project, I implement three different implementations of real-time lighting methods from a naive O(n) search to clustered forward plus lighting to clustered deferred lighting. 
 
 Most games engines nowadays use a mix of forward plus and clustered forward plus - though many years ago, [DOOM 2016](https://advances.realtimerendering.com/s2016/Siggraph2016_idTech6.pdf) used a form of clustered lights with cleverly scalarized access. 
 
@@ -68,7 +68,7 @@ In 2012 from AMD, [Harada, et. al](https://takahiroharada.wordpress.com/wp-conte
 
 This way, **lighting contributions are localized,** and the amount of lights processed per fragment is limited by the most lights that can be stored in a tile. This significantly reduces the number of lights processed per fragment!
 
-While the paper introduces the technique for deferred rendering pipelines, it's easily adaptable to forward rendering using compute shaders! We can implement our tile construction and light culling as such:
+Since the paper was designed as an improvement upon tiled deferred renderers (intended for forward rendering pipelines), it's easily adaptable to forward rendering using compute shaders! We can implement our tile construction and light culling as such:
 
 ```
 for each 2D cluster (# of clusters determined by 2D tile size and screen dimensions):
@@ -159,7 +159,7 @@ I tested for performance by disabling the move light compute shaders and using a
 
 As noted previously, both the deferred and forward plus solutions scaled much better across larger numbers of lights. 
 
-Ms for naive increases in a linear fashion, while both forward plus and deferred scale nearly logarithmically. This is mostly from the localized binning of the lights, allowing lesser lighting calculations per fragment based on the cluster. Deferred runs much faster than forward because of the single light shading for what's on screen, avoiding overdraw from Sponza's complex geometry.
+Ms for naive increases in a linear fashion, while both forward plus and deferred scale nearly sublinearly. This is mostly from the localized binning of the lights, allowing lesser lighting calculations per fragment based on the cluster. Deferred runs much faster than forward because of the single light shading for what's on screen, avoiding overdraw from Sponza's complex geometry.
 
 I would expect that for simpler scenes, like a simple plane, the overhead from sampling deferred's expensive texture formats would cause worse performance compared to forward plus, which has most fragments present on screen immediately with little overdraw.
 
@@ -167,7 +167,7 @@ I would expect that for simpler scenes, like a simple plane, the overhead from s
 ### Performance vs. Number of Clusters (Based on Tile Size)
 ![clusters](img/tileSizePerf.png)
 
-To test for performance based on the number of clusters, I was able to change the tile size to adjust clusters, where smaller tile sizes correspond to more clusters, and larger clusters correspond to less clusters. For this analysis, I kept the number of clusters in the Z axis constant at 32.
+To test for performance based on the number of clusters, I was able to change the tile size to adjust clusters, where smaller tile sizes correspond to more clusters, and larger clusters correspond to fewer clusters. For this analysis, I kept the number of clusters in the Z axis constant at 32.
 
 From testing, I found that performance is best around 64 and 128, which **I've calculated to about 28,160 to 7040 clusters, or # just under 10,000 being optimal**. 
 
